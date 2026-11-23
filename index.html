@@ -153,4 +153,16 @@ function finish(){
 }
 </script>
 </body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://supabase.com/dashboard/project/yoolvufvzlvafeefvcvq/integrations";
+const SUPABASE_KEY = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+console.log("Chess Adda connected to Supabase!");
+</script>
 </html>
