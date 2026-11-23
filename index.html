@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Chess Adda</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#10131c;color:white;font-family:Arial,sans-serif}
+header{padding:24px 20px;background:#171b27}
+.logo{font-size:28px;font-weight:900;color:#f5b544}
+.sub{color:#a7afc3;margin-top:5px}
+.balance{background:#242a39;border-radius:14px;padding:18px;margin:20px}
+.balance span{color:#aab3c5}
+.balance h2{margin:8px 0;color:#ffd166}
+main{padding:0 20px 30px}
+h3{margin-top:26px}
+button{background:#f5b544;color:#151515;border:0;border-radius:12px;padding:15px;font-size:16px;font-weight:bold;width:100%;margin:7px 0;cursor:pointer}
+.secondary{background:#262d3e;color:white}
+.card{background:#1b2030;border:1px solid #30384b;padding:18px;border-radius:16px;margin:12px 0}
+select{width:100%;padding:12px;background:#242a39;color:white;border:1px solid #454d60;border-radius:10px;margin:8px 0}
+#board{display:grid;grid-template-columns:repeat(8,1fr);width:100%;aspect-ratio:1;margin:12px auto}
+.square{display:flex;align-items:center;justify-content:center;font-size:clamp(24px,8vw,45px);cursor:pointer;position:relative}
+.light{background:#e8d5b5;color:#222}
+.dark{background:#788e76;color:#222}
+.selected{box-shadow:inset 0 0 0 4px #f5b544}
+.dot{width:25%;height:25%;background:#303a32;opacity:.5;border-radius:50%;position:absolute}
+#game{display:none}
+small{color:#aab3c5}
+</style>
+</head>
+<body>
+<header>
+<div class="logo">♟ CHESS ADDA</div>
+<div class="sub">Play • Challenge • Rise</div>
+</header>
+
+<div class="balance">
+<span>YOUR VIRTUAL BALANCE</span>
+<h2 id="coins">🪙 1,000</h2>
+<small>Demo coins only</small>
+</div>
+
+<main>
+<div id="home">
+<h3>♟ Welcome to Chess Adda</h3>
+<div class="card">
+<h3>Create a match</h3>
+<label>Virtual stake</label>
+<select id="stake">
+<option value="50">50 coins</option>
+<option value="100">100 coins</option>
+<option value="250">250 coins</option>
+<option value="500">500 coins</option>
+</select>
+<button onclick="createMatch()">Create match</button>
+<button class="secondary" onclick="joinMatch()">Join match</button>
+</div>
+
+<div class="card">
+<h3>🏆 Leaderboard</h3>
+<p>🥇 ChessMaster — 2,450</p>
+<p>🥈 KnightRider — 1,980</p>
+<p>🥉 QueenAttack — 1,750</p>
+<p><small>Demo leaderboard</small></p>
+</div>
+
+<div class="card">
+<h3>👤 Profile</h3>
+<p>Player: Guest</p>
+<p>Rating: 1200</p>
+<p>Matches: 0</p>
+</div>
+</div>
+
+<div id="game">
+<button class="secondary" onclick="back()">← Back</button>
+<div class="card">
+<div id="info">White to move</div>
+<div id="board"></div>
+<button class="secondary" onclick="resetGame()">Restart game</button>
+</div>
+</div>
+</main>
+
+<script>
+let coins=1000,stake=50,game=null,selected=null;
+const pieces={'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙',
+'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟'};
+function updateCoins(){document.getElementById('coins').textContent='🪙 '+coins}
+function createMatch(){
+ stake=+document.getElementById('stake').value;
+ if(coins<stake){alert('Not enough demo coins!');return}
+ alert('Demo match created! Local chess is ready. Multiplayer is not connected yet.');
+ startGame();
+}
+function joinMatch(){
+ alert('Join-room multiplayer will be added in a later step. For now, try the playable chessboard.');
+ stake=+document.getElementById('stake').value;
+ startGame();
+}
+function startGame(){
+ document.getElementById('home').style.display='none';
+ document.getElementById('game').style.display='block';
+ game=new Chess();selected=null;render();
+}
+function back(){
+ document.getElementById('game').style.display='none';
+ document.getElementById('home').style.display='block';
+}
+function resetGame(){game=new Chess();selected=null;render()}
+function render(){
+ const board=document.getElementById('board');board.innerHTML='';
+ const b=game.board();
+ b.forEach((row,r)=>row.forEach((p,c)=>{
+ const sq=document.createElement('div');
+ sq.className='square '+((r+c)%2?'dark':'light');
+ const name='abcdefgh'[c]+(8-r);
+ sq.dataset.sq=name;
+ if(selected===name)sq.classList.add('selected');
+ sq.textContent=p?pieces[p.color==='w'?p.type.toUpperCase():p.type]:'';
+ sq.onclick=()=>clickSquare(name);
+ board.appendChild(sq);
+ }));
+ document.getElementById('info').textContent=game.isGameOver()?
+ (game.isCheckmate()?'Checkmate! '+(game.turn()==='w'?'Black':'White')+' wins.':'Game drawn.'):(game.turn()==='w'?'White':'Black')+' to move'+(game.isCheck()?' — Check!':'');
+}
+function clickSquare(s){
+ if(game.game_over())return;
+ if(selected){
+  try{
+   const m=game.move({from:selected,to:s,promotion:'q'});
+   if(m){selected=null;render();if(game.game_over())finish();return}
+  }catch(e){}
+ }
+ const moves=game.moves({square:s,verbose:true});
+ if(moves.length){selected=s;render();showTargets(moves)}
+ else{selected=null;render()}
+}
+function showTargets(moves){
+ moves.forEach(m=>{
+ const el=document.querySelector('[data-sq="'+m.to+'"]');
+ if(el){const dot=document.createElement('div');dot.className='dot';el.appendChild(dot)}
+ })
+}
+function finish(){
+ if(game.isCheckmate()){
+  const winner=game.turn()==='w'?'Black':'White';
+  alert('Demo game ended. '+winner+' wins. No coins are awarded in this prototype.');
+ }else alert('Game ended in a draw.');
+}
+</script>
+</body>
+</html>
